@@ -1,8 +1,13 @@
+// Sign up page
+
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Button } from 'react-native';
 import {useState, useRef} from 'react'
+import JWT from 'expo-jwt';
 
 import { Image } from 'react-native';
 import { BLUE, LIGHT_BLUE } from './CONSTANTS';
+
+import { setToken } from './Utils';
 
 export default function Login({navigation}) {
   const [email, setEmail] = useState('');
@@ -31,24 +36,49 @@ export default function Login({navigation}) {
           />
       </View>
 
-      <TouchableOpacity style={styles.loginBtn} onPress={() => {
-          navigation.navigate('Home')
-        }}>
-        <Text style={styles.text}>Login</Text>
+      <TouchableOpacity style={styles.loginBtn} onPress={register(navigation, email, password)}>
+        <Text style={styles.text}>Sign Up</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => {
-        navigation.navigate('Register');
-      }}>
-        <Text style={styles.signup_button}>Sign Up</Text> 
-      </TouchableOpacity>
-
-      <TouchableOpacity>
-        <Text style={styles.forgot_button}>Forgot Password?</Text> 
-      </TouchableOpacity>
-    
     </View>
   );
+}
+
+function register(navigation, email, password) {
+  if(email.length == 0) return;
+  if(password.length == 0) return;
+
+  const form_data = new FormData()
+  form_data.append("username", email)
+  form_data.append("password", password)
+
+  handleToken(navigation, form_data);
+
+  
+}
+
+async function handleToken(navigation, form_data) {
+    
+  // Send data to the backend via POST
+  const res = await fetch('https://f6a7-140-116-1-143.ngrok-free.app/api/signup', {  // Enter your IP address here
+
+    method: 'POST', 
+    mode: 'cors', 
+    body: form_data // body data type must match "Content-Type" header
+  })
+
+  const data = await res.json()
+
+  if('access_token' in data) {
+    const decodeToken = JWT.decode(data['access_token'], 'SECRET')
+    try {
+      setToken('token', data['access_token'])
+      setToken('permissions', decodeToken.permissions)
+      setToken('id', decodeToken.id.toString())
+      navigation.navigate("Login")
+    } catch (e) {
+      console.log('Error: ' + e)
+    }
+  }
 }
 
 const styles = StyleSheet.create({
